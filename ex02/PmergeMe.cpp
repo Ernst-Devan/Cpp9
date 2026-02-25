@@ -5,6 +5,7 @@
 void    PmergeMe::create_initial_vector(char **nbs, int ac)
 {
     std::vector<int> list;
+    std::vector<std::pair<int,int> > raw_pair_list;
 
     for(int i = 1; i < ac; i++)
     {
@@ -13,85 +14,97 @@ void    PmergeMe::create_initial_vector(char **nbs, int ac)
         sscanf(nbs[i], "%d", &tmp);
         list.push_back(tmp);
     }
-    create_pair_list(list);
+
+    create_pair_list(list, raw_pair_list);
     
 }
 
-void    PmergeMe::create_pair_list(std::vector<int>& list)
+std::vector<int>    PmergeMe::create_pair_list(std::vector<int>& list, std::vector<std::pair<int,int> >& raw)
 {
     std::vector<int>::iterator it = list.begin();
     std::vector<std::pair<int,int> > pair_list;
     std::vector<int> main;
 
-    if (list.size() <= 1)
-        return;
-
+    
     while (it != list.end())
     {
         int first;
         int second;
-
+        
         first = *it++;
         if (it == list.end())
-            break;
+        break;
         second = *it++;
         pair_list.push_back(std::make_pair(first, second));
     }
-
-    sort_pair_list(pair_list);
-    main = take_max(pair_list);
-    show_each_pair(pair_list);
-
-    create_pair_list(main);
     
-    // show_list(max_list);
-    // pair_list = reorder_pair_list(max_list, pair_list);
-    insert_first_littlefyuxhj
-    main.insert(main.begin());
+    if (raw.empty())
+    raw = pair_list;
+    
+    sort_pair_list(pair_list);
+    take_max(main ,pair_list);
+
+    if (list.size() <= 1)
+        return max;
+
+    std::vector<int> sorted_main = create_pair_list(main, raw);
+
+    insert_first_little(sorted_main, raw);
+
+    return sorted_main;
 }
 
 void    PmergeMe::insert_first_little(std::vector<int>& main, std::vector<std::pair<int, int> >& pair_list)
 {
-
-}
-
-std::vector<std::pair<int, int> >   PmergeMe::reorder_pair_list(std::vector<int>& max_list, std::vector<std::pair<int, int> >& pair_list)
-{
-    std::vector<std::pair<int,int> > ordered_pair;
-
-    std::vector<std::pair<int, int> >::iterator it_pair = pair_list.begin(); 
-
-    // show_list(max_list);
-
-    while (max_list.size() >= 1)
-    {
-        while ((*it_pair).second != max_list.back())
-        {
-            it_pair++;
-        }
-        ordered_pair.push_back(*it_pair);
-        max_list.pop_back();
-        it_pair = pair_list.begin();
-        
-    }
+    std::cout << "test:" << std::endl;
+    show_list(main);
+    main.insert(main.begin(), get_little_from_bigger(pair_list ,main[0]));
+    std::cout << "test:" << std::endl;
+    show_list(main);
 
     std::cout << std::endl;
-    show_each_pair(ordered_pair);
-    return ordered_pair;
 }
 
-std::vector<int>   PmergeMe::take_max(std::vector<std::pair<int,int> >& pair_list)
+int    PmergeMe::get_little_from_bigger(std::vector<std::pair<int, int> >& pair_list, int bigger)
 {
-    std::vector<int> list;
     std::vector<std::pair<int, int> >::iterator it = pair_list.begin();
 
     while (it != pair_list.end())
     {
-        list.push_back((*it).second);
+        if ((*it).second == bigger)
+            return (*it).first;
         it++;
     }
-    return list;
+
+    return -1;
 }
+
+static  int is_inside(std::vector<int> list, int nb)
+{
+    std::vector<int>::iterator it = list.begin();
+
+    while (it != list.end())
+    {
+        if (*it == nb)
+            return 1;   
+        it++;
+    }
+    return 0;
+}
+
+void    PmergeMe::take_max(std::vector<int>& main, std::vector<std::pair<int,int> >& pair_list)
+{
+    std::vector<std::pair<int, int> >::iterator it = pair_list.begin();
+
+
+    while (it != pair_list.end())
+    {
+        if (!is_inside(main, (*it).second))
+            main.push_back((*it).second);
+        it++;
+    }
+}
+
 
 void    PmergeMe::show_each_pair(std::vector<std::pair<int,int> >& pair_list)
 {
