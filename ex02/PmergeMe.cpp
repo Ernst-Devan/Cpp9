@@ -2,108 +2,98 @@
 #include <iostream>
 #include <cstdio>
 
-void    PmergeMe::create_initial_vector(char **nbs, int ac)
+PmergeMe::PmergeMe() {}
+PmergeMe::PmergeMe(PmergeMe const& p) { (void)p; }
+PmergeMe& PmergeMe::operator=(PmergeMe const& p) { return *this; (void)p; }
+PmergeMe::~PmergeMe() {}
+
+bool PmergeMe::is_inside(std::vector<int>& list, int nb)
+{
+    for (size_t i = 0; i < list.size(); i++)
+    {
+        if (list[i] == nb)
+            return true;
+    }
+    return false;
+}
+
+void PmergeMe::create_initial_vector(char **nbs, int ac)
 {
     std::vector<int> list;
-    std::vector<std::pair<int,int> > raw_pair_list;
 
     for(int i = 1; i < ac; i++)
     {
         int tmp;
-
-        sscanf(nbs[i], "%d", &tmp);
+        if (sscanf(nbs[i], "%d", &tmp) != 1 || tmp < 0)
+        {
+            std::cerr << "Error" << std::endl;
+            return;
+        }
         list.push_back(tmp);
     }
 
-    std::vector<int> result = create_pair_list(list, raw_pair_list);
+    std::vector<int> before = list;
+
+    clock_t start = clock();
+    std::vector<int> result = merge_insert_sort(list);
+    clock_t end = clock();
+
+    double time_us = (double)(end - start) / CLOCKS_PER_SEC * 1000000;
+
+    std::cout << "Before: ";
+    show_list(before);
+    
+    std::cout << "After: ";
     show_list(result);
+    
+    std::cout << std::fixed << std::setprecision(5)
+              << "Time to process a range of " << result.size()
+              << " elements with std::vector : " << time_us << " us" << std::endl;
 }
 
-std::vector<int>    PmergeMe::create_pair_list(std::vector<int>& list, std::vector<std::pair<int,int> >& raw)
+std::vector<int> PmergeMe::merge_insert_sort(std::vector<int>& list)
 {
-    std::vector<int>::iterator it = list.begin();
+    if (list.size() <= 1)
+        return list;
+
     std::vector<std::pair<int,int> > pair_list;
     std::vector<int> main;
     int remaining = -1;
 
-    
-    while (it != list.end())
+    // Créer les paires
+    for (size_t i = 0; i + 1 < list.size(); i += 2)
     {
-        int first;
-        int second;
-        
-        first = *it++;
-        if (it == list.end())
-        {
-            remaining = first;
-            break;
-        }
-        second = *it++;
+        int first = list[i];
+        int second = list[i + 1];
         pair_list.push_back(std::make_pair(first, second));
     }
     
-    if (raw.empty())
-        raw = pair_list;
+    if (list.size() % 2 == 1)
+        remaining = list[list.size() - 1];
     
+    // Trier les paires (smaller < larger)
     sort_pair_list(pair_list);
-    take_max(main ,pair_list);
+    
+    // Extraire les maximums
+    take_max(main, pair_list);
 
-    if (pair_list.size() <= 1)
+    // Cas de base
+    if (main.size() <= 1)
     {
-        if (remaining != -1)
-            main.push_back(remaining);
+        insert_small_elements(main, pair_list, remaining);
         return main;
     }
 
-    std::vector<int> sorted_main = create_pair_list(main, raw);
+    // Trier récursivement les maximums
+    main = merge_insert_sort(main);
 
-    insert_small_elements(sorted_main, raw, remaining);
+    // Insérer les petits de ce niveau
+    insert_small_elements(main, pair_list, remaining);
 
-    return sorted_main;
+    return main;
 }
 
-
-void    PmergeMe::insert_small_elements(std::vector<int>& main, std::vector<std::pair<int, int> >& pair_list, int remaining)
-{
-    // Créer la suite de Jacobsthal pour l'ordre d'insertion optimal
-    std::vector<int> jacobsthal = generate_jacobsthal(pair_list.size());
-    std::vector<int> inserted(pair_list.size(), 0);
-    
-    // Insérer les petits éléments dans l'ordre de Jacobsthal
-    for (size_t i = 0; i < jacobsthal.size() && i < pair_list.size(); i++)
-    {
-        int idx = jacobsthal[i] - 1; // Index 0-based
-        if (idx >= 0 && idx < (int)pair_list.size() && !inserted[idx])
-        {
-            int small = pair_list[idx].first;
-            insert_with_binary_search(main, small);
-            inserted[idx] = 1;
-        }
-    }
-    
-    // Insérer les éléments non encore insérés
-    for (size_t i = 0; i < pair_list.size(); i++)
-    {
-        if (!inserted[i])
-        {
-            int small = pair_list[i].first;
-            insert_with_binary_search(main, small);
-        }
-    }
-    
-    // Insérer l'élément restant s'il y en a un
-    if (remaining != -1)
-        insert_with_binary_search(main, remaining);
-}
-
-
-void    PmergeMe::insert_with_binary_search(std::vector<int>& main, int value)
-{
-    std::vector<int>::iterator it = std::lower_bound(main.begin(), main.end(), value);
-    main.insert(it, value);
-}
-
-std::vector<int>    PmergeMe::generate_jacobsthal(size_t size)
+std::vector<int> PmergeMe::generate_jacobsthal(std::size_t size)
 {
     std::vector<int> result;
     if (size == 0) return result;
@@ -113,111 +103,80 @@ std::vector<int>    PmergeMe::generate_jacobsthal(size_t size)
     
     result.push_back(j1);
     
-    while ((size_t)j1 < size)
+    while ((std::size_t)j1 < size)
     {
         int temp = j1;
         j1 = j1 + 2 * j0;
         j0 = temp;
-        if ((size_t)j1 <= size)
+        if ((std::size_t)j1 <= size)
             result.push_back(j1);
     }
     
     return result;
 }
 
-
-void    PmergeMe::insert_first_little(std::vector<int>& main, std::vector<std::pair<int, int> >& pair_list)
+void PmergeMe::insert_small_elements(std::vector<int>& main, std::vector<std::pair<int, int> >& pair_list, int remaining)
 {
-    main.insert(main.begin(), get_little_from_bigger(pair_list ,main[0]));
-}
-
-int    PmergeMe::get_little_from_bigger(std::vector<std::pair<int, int> >& pair_list, int bigger)
-{
-    std::vector<std::pair<int, int> >::iterator it = pair_list.begin();
-
-    while (it != pair_list.end())
+    std::vector<int> jacobsthal = generate_jacobsthal(pair_list.size());
+    std::vector<int> inserted(pair_list.size(), 0);
+    
+    // Insérer selon la suite de Jacobsthal
+    for (size_t i = 0; i < jacobsthal.size(); i++)
     {
-        if ((*it).second == bigger)
-            return (*it).first;
-        it++;
+        int idx = jacobsthal[i] - 1;
+        if (idx >= 0 && idx < (int)pair_list.size() && !inserted[idx])
+        {
+            int small = pair_list[idx].first;
+                insert_with_binary_search(main, small);
+            inserted[idx] = 1;
+        }
     }
-
-    return -1;
-}
-
-static  int is_inside(std::vector<int> list, int nb)
-{
-    std::vector<int>::iterator it = list.begin();
-
-    while (it != list.end())
+    
+    // Insérer les éléments restants
+    for (size_t i = 0; i < pair_list.size(); i++)
     {
-        if (*it == nb)
-            return 1;   
-        it++;
+        if (!inserted[i])
+        {
+            int small = pair_list[i].first;
+                insert_with_binary_search(main, small);
+        }
     }
-    return 0;
+    
+    // Insérer l'élément solitaire
+    if (remaining != -1)
+        insert_with_binary_search(main, remaining);
 }
 
-void    PmergeMe::take_max(std::vector<int>& main, std::vector<std::pair<int,int> >& pair_list)
+void PmergeMe::insert_with_binary_search(std::vector<int>& main, int value)
 {
-    std::vector<std::pair<int, int> >::iterator it = pair_list.begin();
+    std::vector<int>::iterator it = std::lower_bound(main.begin(), main.end(), value);
+    main.insert(it, value);
+}
 
-
-    while (it != pair_list.end())
+void PmergeMe::take_max(std::vector<int>& main, std::vector<std::pair<int,int> >& pair_list)
+{
+    for (size_t i = 0; i < pair_list.size(); i++)
     {
-        if (!is_inside(main, (*it).second))
-            main.push_back((*it).second);
-        it++;
+        main.push_back(pair_list[i].second);
     }
 }
 
-
-void    PmergeMe::show_each_pair(std::vector<std::pair<int,int> >& pair_list)
+void PmergeMe::show_list(std::vector<int>& list)
 {
-    std::vector<std::pair<int,int> >::iterator it = pair_list.begin();
-    while (it != pair_list.end())
+    for (size_t i = 0; i < list.size(); i++)
     {
-        std::pair<int,int> test;
-        test = *it;
-        std::cout << test.first << " ";
-        std::cout << test.second;
-        std::cout << " | ";
-        it++;
+        std::cout << list[i];
+        if (i + 1 < list.size())
+            std::cout << " ";
     }
     std::cout << std::endl;
 }
 
-void    PmergeMe::show_list(std::vector<int>& list)
+void PmergeMe::sort_pair_list(std::vector<std::pair<int,int> >& pair_list)
 {
-    std::vector<int>::iterator it = list.begin();
-
-    while (it != list.end())
+    for (size_t i = 0; i < pair_list.size(); i++)
     {
-        std::cout << *it;
-        std::cout << " ";
-        it++;
-    }
-    std::cout << std::endl;
-}
-
-void    swap_pair(std::pair<int, int>& pair)
-{
-    int tmp;
-
-    tmp = pair.first;
-    pair.first = pair.second;
-    pair.second = tmp;
-}
-
-
-void    PmergeMe::sort_pair_list(std::vector<std::pair<int,int> >& pair_list)
-{
-    std::vector<std::pair<int,int> >::iterator it = pair_list.begin();
-
-    while (it != pair_list.end())
-    {
-        if ((*it).first > (*it).second)
-            swap_pair(*it);
-        it++;
+        if (pair_list[i].first > pair_list[i].second)
+            std::swap(pair_list[i].first, pair_list[i].second);
     }    
 }
