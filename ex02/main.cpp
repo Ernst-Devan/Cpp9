@@ -6,7 +6,7 @@ int main(int ac, char **av)
 {
     if (ac < 3)
     {
-        std::cerr << "Correct usage: ./PmergeMe [nb] [nb] [nb].." << std::endl;
+        std::cerr << "Correct usage: ./PmergeMe [nb] [nb].." << std::endl;
         return 1;
     }
     try

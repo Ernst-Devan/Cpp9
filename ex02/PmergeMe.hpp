@@ -23,6 +23,7 @@ class PmergeMe
         static void insert_with_binary_search(std::vector<int>& main, int value);
         static std::vector<int> generate_jacobsthal(std::size_t size);
         static bool is_inside(std::vector<int>& list, int nb);
+        static int check_validity_number(char *nbs);
 
 
     public:

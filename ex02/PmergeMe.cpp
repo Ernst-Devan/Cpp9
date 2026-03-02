@@ -1,6 +1,10 @@
 #include "PmergeMe.hpp"
 #include <iostream>
 #include <cstdio>
+#include <sstream>
+
+// Manage maybe the overflow of int 
+// Make a check during the parsing to accept only number and not other character
 
 PmergeMe::PmergeMe() {}
 PmergeMe::PmergeMe(PmergeMe const& p) { (void)p; }
@@ -17,14 +21,30 @@ bool PmergeMe::is_inside(std::vector<int>& list, int nb)
     return false;
 }
 
+int PmergeMe::check_validity_number(char *nbs)
+{
+    std::string tmp = nbs;
+    for (size_t j = 0; j < tmp.size(); j++)
+    {
+        if (!isdigit(nbs[j]))
+            return 1;
+    }
+    return 0;
+}
+
 void PmergeMe::create_initial_vector(char **nbs, int ac)
 {
     std::vector<int> list;
 
     for(int i = 1; i < ac; i++)
     {
+        std::string str = nbs[i];
+        std::stringstream ss(str);
         int tmp;
-        if (sscanf(nbs[i], "%d", &tmp) != 1 || tmp < 0)
+
+        ss >> tmp;
+        
+        if (ss.fail() || tmp < 0 || check_validity_number(nbs[i]))
         {
             std::cerr << "Error" << std::endl;
             return;
